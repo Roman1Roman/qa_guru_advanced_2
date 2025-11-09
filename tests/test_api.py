@@ -2,14 +2,20 @@ from http import HTTPStatus
 import json
 import pytest
 import requests
+import os
+from pathlib import Path
 from requests import Response
 from app.models.User import User
 from app.models.Pagination import Pagination
 
 
+# Получаем путь к корню проекта
+BASE_DIR = Path(__file__).parent.parent
+USERS_JSON_PATH = BASE_DIR / "tests" / "users.json"
+
 @pytest.fixture(scope="module")
 def fill_test_data(get_app_url):
-    with open("users.json") as f:
+    with open(USERS_JSON_PATH, 'r') as f:
         test_data_users = json.load(f)
     api_users = []
     for user in test_data_users:
