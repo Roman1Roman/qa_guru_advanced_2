@@ -11,6 +11,5 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi --no-root
 
 COPY ./app /qaguru2/app
-COPY users.json /qaguru2/
 
 CMD ["fastapi", "run", "app/main.py", "--port", "80"]
