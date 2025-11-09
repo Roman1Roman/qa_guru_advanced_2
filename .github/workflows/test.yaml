@@ -10,6 +10,7 @@ jobs:
     env:
       POSTGRES_USER: ci
       POSTGRES_PASSWORD: ci
+      APP_URL: http://localhost:8081/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,9 +30,6 @@ jobs:
       - run: docker compose up -d
       - run: sleep 5
       - run: poetry run pytest tests --junit-xml=test-results.xml
-        env:
-          APP_URL: http://localhost:8081/api
-
       - run: docker compose logs app
         if: always()
 

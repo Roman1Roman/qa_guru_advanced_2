@@ -13,7 +13,7 @@ def get_env():
 
 @pytest.fixture(scope='session')
 def get_app_url():
-    return os.getenv('API_URL', 'http://localhost:8081/api')
+    return os.getenv('API_URL')
 
 
 @pytest.fixture()
