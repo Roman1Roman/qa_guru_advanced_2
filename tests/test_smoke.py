@@ -1,8 +1,7 @@
-import requests
-from requests import Response
+from clients.status_api import StatusApi
 
-def test_ping(get_app_url) -> None:
-    request: Response = requests.get(f'{get_app_url}/status')
+def test_ping(status_api: StatusApi) -> None:
+    request = status_api.get_status()
     response = request.json()
 
     assert request.status_code == 200
