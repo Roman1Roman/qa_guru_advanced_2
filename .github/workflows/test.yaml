@@ -10,7 +10,7 @@ jobs:
     env:
       POSTGRES_USER: ci
       POSTGRES_PASSWORD: ci
-      APP_URL: http://localhost:8081/api
+      APP_URL: http://localhost:8081
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

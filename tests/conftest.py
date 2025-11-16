@@ -1,14 +1,38 @@
 import os
 from http import HTTPStatus
-
 import requests
 import dotenv
 import pytest
+from clients.users_api import UsersApi
+from clients.status_api import StatusApi
 
 
 @pytest.fixture(autouse=True, scope='session')
 def get_env():
     dotenv.load_dotenv()
+
+
+def pytest_addoption(parser):
+    parser.addoption('--env', default='dev')
+
+
+@pytest.fixture(scope='session')
+def env(request):
+    return request.config.getoption('--env')
+
+
+@pytest.fixture(scope='session')
+def users_api(env):
+    api = UsersApi(env)
+    yield api
+    api.session.close()
+
+
+@pytest.fixture(scope='session')
+def status_api(env):
+    api = StatusApi(env)
+    yield api
+    api.session.close()
 
 
 @pytest.fixture(scope='session')

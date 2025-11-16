@@ -1,12 +1,10 @@
 from http import HTTPStatus
 import json
 import pytest
-import requests
-import os
 from pathlib import Path
-from requests import Response
 from app.models.User import User
 from app.models.Pagination import Pagination
+from clients.users_api import UsersApi
 
 
 # Получаем путь к корню проекта
@@ -14,12 +12,12 @@ BASE_DIR = Path(__file__).parent.parent
 USERS_JSON_PATH = BASE_DIR / "tests" / "users.json"
 
 @pytest.fixture(scope="module")
-def fill_test_data(get_app_url):
+def fill_test_data(users_api: UsersApi):
     with open(USERS_JSON_PATH, 'r') as f:
         test_data_users = json.load(f)
     api_users = []
     for user in test_data_users:
-        response = requests.post(f"{get_app_url}/users/", json=user)
+        response = users_api.create_user(user)
         api_users.append(response.json())
 
     user_ids = [user["id"] for user in api_users]
@@ -27,19 +25,19 @@ def fill_test_data(get_app_url):
     yield user_ids
 
     for user_id in user_ids:
-        requests.delete(f"{get_app_url}/users/{user_id}")
+        users_api.delete_user(user_id)
 
 
 @pytest.fixture()
-def get_users(get_app_url) -> dict:
-    response: Response = requests.get(f'{get_app_url}/users/')
+def get_users(users_api: UsersApi) -> dict:
+    response = users_api.get_users()
     assert response.status_code == HTTPStatus.OK
     return response.json().get('items')
 
 
 @pytest.mark.usefixtures('fill_test_data')
-def test_users(get_app_url) -> None:
-    response: Response = requests.get(f'{get_app_url}/users/')
+def test_users(users_api: UsersApi) -> None:
+    response = users_api.get_users()
     assert response.status_code == HTTPStatus.OK
 
     users = response.json().get('items')
@@ -47,23 +45,23 @@ def test_users(get_app_url) -> None:
         assert User.model_validate(user)
 
 
-def test_user(get_app_url, fill_test_data) -> None:
+def test_user(users_api: UsersApi, fill_test_data) -> None:
     for user_id in (fill_test_data[0], fill_test_data[-1]):
-        response = requests.get(f"{get_app_url}/users/{user_id}")
+        response = users_api.get_user(user_id)
         assert response.status_code == HTTPStatus.OK
         user = response.json()
         User.model_validate(user)
 
 
 @pytest.mark.parametrize('user_id', [13])
-def test_nonexistent_user(get_app_url, user_id) -> None:
-    response: Response = requests.get(f'{get_app_url}/users/{user_id}')
+def test_nonexistent_user(users_api: UsersApi, user_id) -> None:
+    response = users_api.get_user(user_id)
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.parametrize('user_id', [0, -1, 'test'])
-def test_invalid_user(get_app_url, user_id) -> None:
-    response: Response = requests.get(f'{get_app_url}/users/{user_id}')
+def test_invalid_user(users_api: UsersApi, user_id) -> None:
+    response = users_api.get_user(user_id)
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
@@ -74,8 +72,8 @@ def test_users_no_duplicates(get_users) -> None:
     assert len(users_ids) == len(set(users_ids))
 
 
-def test_pagination_model(get_app_url) -> None:
-    response: Response = requests.get(f'{get_app_url}/users?page=1&size=1')
+def test_pagination_model(users_api: UsersApi) -> None:
+    response = users_api.get_users({"page": 1, "size": 1})
     assert response.status_code == HTTPStatus.OK
     assert Pagination.model_validate(response.json())
 
@@ -84,8 +82,8 @@ def test_pagination_model(get_app_url) -> None:
     (1, 5, 5),
     (3, 5, 2),
 ])
-def test_users_object_count(get_app_url, page, size, objects_expected) -> None:
-    response: Response = requests.get(f'{get_app_url}/users?page={page}&size={size}')
+def test_users_object_count(users_api: UsersApi, page, size, objects_expected) -> None:
+    response = users_api.get_users({"page": page, "size": size})
     assert response.status_code == HTTPStatus.OK
     assert response.json().get('size') == size
     assert response.json().get('page') == page
@@ -97,8 +95,8 @@ def test_users_object_count(get_app_url, page, size, objects_expected) -> None:
     (2, 6),
     (12, 1),
 ])
-def test_user_pages(get_app_url, size, pages_expected) -> None:
-    response: Response = requests.get(f'{get_app_url}/users?size={size}')
+def test_user_pages(users_api: UsersApi, size, pages_expected) -> None:
+    response = users_api.get_users({"size": size})
     assert response.status_code == HTTPStatus.OK
     assert response.json().get('size') == size
     assert response.json().get('pages') == pages_expected
@@ -108,8 +106,8 @@ def test_user_pages(get_app_url, size, pages_expected) -> None:
     (1, 12),
     (2, 0),
 ])
-def test_user_object_size(get_app_url, page, size_expected) -> None:
-    response: Response = requests.get(f'{get_app_url}/users?page={page}')
+def test_user_object_size(users_api: UsersApi, page, size_expected) -> None:
+    response = users_api.get_users({"page": page})
     assert response.status_code == HTTPStatus.OK
     assert response.json().get('page') == page
     assert len(response.json().get('items')) == size_expected

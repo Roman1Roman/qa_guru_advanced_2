@@ -30,7 +30,7 @@ jobs:
       - run: sleep 5
       - run: poetry run pytest tests --junit-xml=test-results.xml
         env:
-          APP_URL: http://localhost:8081/api
+          APP_URL: http://localhost:8081
 
       - run: docker compose logs app
         if: always()
